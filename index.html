@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>תרגול – מסע מולקולרי</title>
+  <style>
+    body{font-family:Arial;background:#111;color:#eee;margin:0;padding:20px}
+    h2{margin-top:0}
+    #bank,.cell{border:1px dashed #555;padding:10px;border-radius:6px;min-height:50px}
+    #bank{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+    .card{background:#333;padding:6px 8px;border-radius:4px;cursor:grab;font-size:13px;user-select:none}
+    table{width:100%;border-collapse:collapse;margin-bottom:15px}
+    th,td{border:1px solid #444;padding:8px;vertical-align:top;word-break:break-word;max-width:260px}
+    th{background:#222}
+    .correct{color:#4caf50;font-weight:bold;margin-right:6px}
+    .wrong{color:#f44336;font-weight:bold;margin-right:6px}
+    button{padding:6px 12px;border:none;border-radius:4px;background:#2b6cff;color:#fff;cursor:pointer;margin-left:6px}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    #summary{display:none;background:#222;padding:10px;border-radius:6px;margin-top:10px}
+
+    /* מסך הצלחה */
+    #successOverlay{
+      position:fixed;inset:0;background:#111;display:none;
+      align-items:center;justify-content:center;z-index:9999;
+    }
+    .successBox{text-align:center;max-width:520px;padding:16px}
+    .successBox .check{
+      width:80px;height:80px;border-radius:50%;background:#4caf50;color:#fff;
+      display:inline-flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 16px
+    }
+    .successBox .title{font-size:22px;color:#4caf50;font-weight:bold;margin-bottom:20px}
+    .hint{opacity:.85;font-size:12px;margin-top:10px;line-height:1.4}
+  </style>
+</head>
+<body>
+
+  <div id="exerciseContent">
+    <h2>מיין את המידע לכל מושג</h2>
+    <p>גררו כל כרטיס למקום המתאים בטבלה.</p>
+
+    <div id="bank"></div>
+
+    <table>
+      <tr>
+        <th>מושג</th><th>הגדרה</th><th>התפקיד בגוף</th><th>האנלוגיה בשיעור</th>
+      </tr>
+      <tr data-term="serotonin">
+        <td>סרוטונין (Serotonin / 5-HT)</td>
+        <td class="cell" data-type="definition"></td>
+        <td class="cell" data-type="role"></td>
+        <td class="cell" data-type="analogy"></td>
+      </tr>
+      <tr data-term="psilocin">
+        <td>פסילוסין (Psilocin)</td>
+        <td class="cell" data-type="definition"></td>
+        <td class="cell" data-type="role"></td>
+        <td class="cell" data-type="analogy"></td>
+      </tr>
+      <tr data-term="receptor">
+        <td>קולטן 5-HT2A (רצפטור)</td>
+        <td class="cell" data-type="definition"></td>
+        <td class="cell" data-type="role"></td>
+        <td class="cell" data-type="analogy"></td>
+      </tr>
+      <tr data-term="agonist">
+        <td>אגוניסט (Agonist)</td>
+        <td class="cell" data-type="definition"></td>
+        <td class="cell" data-type="role"></td>
+        <td class="cell" data-type="analogy"></td>
+      </tr>
+      <tr data-term="antagonist">
+        <td>אנטגוניסט (Antagonist)</td>
+        <td class="cell" data-type="definition"></td>
+        <td class="cell" data-type="role"></td>
+        <td class="cell" data-type="analogy"></td>
+      </tr>
+    </table>
+
+    <button onclick="checkAnswers()">בדיקה</button>
+    <button onclick="resetWrong()">איפוס תשובות שגויות בלבד</button>
+
+    <div id="summary">
+      <strong>שאלה מסמכת:</strong><br>
+      מדוע פסילוסין גורם לשינוי תודעתי חזק יותר מסרוטונין, למרות הדמיון המבני ביניהם?
+
+      <div style="margin-top:10px">
+        <textarea id="summaryAnswer" rows="5" style="width:100%;padding:6px;border-radius:4px" placeholder="כתבו כאן את תשובתכם..."></textarea>
+      </div>
+
+      <button id="submitSummary" style="display:none;margin-top:8px" onclick="submitSummary()">הגשה וסיום</button>
+    </div>
+  </div>
+
+  <!-- מסך הצלחה מלא -->
+  <div id="successOverlay">
+    <div class="successBox">
+      <div class="check">✓</div>
+      <div class="title">הגשת התרגיל בוצעה בהצלחה!</div>
+      <button onclick="downloadWord()">הורדת קובץ Word – פתרון מלא</button>
+      <div class="hint">אם ההורדה לא מתחילה: פתחו את הדף דרך Chrome/Edge, וודאו שיש אינטרנט (הקובץ נבנה עם ספריית docx).</div>
+    </div>
+  </div>
+
+  <!-- ספריית DOCX אמיתי (חובה) -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+
+  <script>
+    // ===== תוכן רשמי לוורד – לפי המסמך שסיפקת =====
+    const WORD_TITLE = "תרגול ראשון – פיתרון מלא";
+    const WORD_TABLE_TITLE = "טבלת מושגים";
+
+    const WORD_TABLE = [
+      ["מושג", "הגדרה", "תפקיד בגוף", "אנלוגיה בשיעור"],
+      ["סרוטונין", "מוליך עצבי טבעי המיוצר בגוף", "ויסות מצב רוח, שינה ותפיסה חושית", "מפתח מקורי"],
+      ["פסילוסין", "החומר פעיל המהווה תוצר מפירוק הפסילוסיבין", "היקשרות לקולטן הסרוטונין מסוג HT2A-5  עקב דמיון מבני", "מפתח \"מאסטר\""],
+      ["קולטן HT2A-5", "חלבון הממוקם על גבי קרום תא העצב", "קליטת האות הכימי והפעלת התגובה התאית במוח", "מנעול"],
+      ["אגוניסט", "חומר שנקשר לקולטן ומפעיל אותו", "חיקוי הפעולה הטבעית ויצירת תגובה ביולוגית אקטיבית", "פעולת סיבוב המפתח ופתיחת הדלת לרווחה"],
+      ["אנטגוניסט", "חומר שנקשר לקולטן וחוסם אותו", "מניעת היקשרות החומר הטבעי ועצירת הפעולה הביולוגית", "----"],
+    ];
+
+    const OPEN_QUESTION = "מדוע פסילוסין גורם לשינוי תודעתי חזק יותר מסרוטונין, למרות הדמיון המבני ביניהם?";
+
+    const OPEN_ANSWER = `הפער בעוצמת ההשפעה התודעתית בין המוליך העצבי הטבעי (סרוטונין) לבין החומר הפסיכואקטיבי (פסילוסין) נובע מאופי האינטראקציה עם קולטן ה HT2A-5 :
+
+1.אופי (החומר הנקשר): ויסות לעומת הפעלה אקטיבית בעוד שהסרוטונין מתפקד כמוליך עצבי אנדוגני (פנימי) שתפקידו לשמור על הומאוסטזיס (איזון) ולווסת תהליכים פיזיולוגיים בצורה מבוקרת, הפסילוסין פועל כאגוניסט סרוטונרגי חיצוני. משמעות הדבר היא שהוא אינו כפוף למנגנוני הויסות הרגילים של הגוף.
+
+2.המנגנון המולקולרי: עוצמת האגוניזם על אף הדמיון המבני, הפסילוסין נקשר לקולטן ה-5-HT2A בזיקה (Affinity)  גבוהה ויוצר עמו קומפלקס יציב. בניגוד לפעולה המתונה של הסרוטונין ("המפתח הרגיל"), הפסילוסין ("מפתח מאסטר") מבצע הפעלה אקטיבית ועוצמתית של הקולטן , המובילה להפעלת שרשרת איתות תוך-תאית חזקה מהרגיל.
+
+ 3.השלכה מערכתית (מבט להמשך) הפעלה מולקולרית אינטנסיבית זו בקולטנים מהווה את הטריגר לשינוי ברמת המאקרו: היא זו שמובילה לשיבוש הפעילות ברשתות המוחיות (ובעיקר ב-DMN), כפי שנרחיב בחלקו השני של השיעור העוסק בשינוי בדפוסי התקשורת במוח.`;
+
+    // ===== הנתונים לתרגול (הכרטיסים) – זהים למה שהיה אצלך =====
+    const data = [
+      {term:'serotonin',type:'definition',text:'מוליך עצבי טבעי המיוצר בגוף'},
+      {term:'serotonin',type:'role',text:'ויסות מצב רוח, שינה ותפיסה חושית'},
+      {term:'serotonin',type:'analogy',text:'המפתח המקורי של הגוף'},
+
+      {term:'psilocin',type:'definition',text:'החומר פעיל המהווה תוצר מפירוק הפסילוסיבין'},
+      {term:'psilocin',type:'role',text:'היקשרות לקולטן הסרוטונין מסוג 5-HT2A. עקב דמיון מבני לסרוטונין'},
+      {term:'psilocin',type:'analogy',text:'מפתח ה"מאסטר"'},
+
+      {term:'receptor',type:'definition',text:'חלבון הממוקם על גבי קרום תא העצב'},
+      {term:'receptor',type:'role',text:'קליטת האות הכימי והפעלת התגובה התאית במוח'},
+      {term:'receptor',type:'analogy',text:'מנעול'},
+
+      {term:'agonist',type:'definition',text:'חומר שנקשר לקולטן ומפעיל אותו'},
+      {term:'agonist',type:'role',text:'חיקוי הפעולה הטבעית ויצירת תגובה ביולוגית אקטיבית'},
+      {term:'agonist',type:'analogy',text:'פעולת סיבוב המפתח ופתיחת הדלת לרווחה'},
+
+      {term:'antagonist',type:'definition',text:'חומר שנקשר לקולטן וחוסם אותו'},
+      {term:'antagonist',type:'role',text:'מניעת היקשרות החומר הטבעי ועצירת הפעולה הביולוגית'},
+      {term:'antagonist',type:'analogy',text:'-----'}
+    ];
+
+    // ===== בניית הבנק =====
+    const bank = document.getElementById('bank');
+    data
+      .slice()
+      .sort(()=>Math.random()-0.5)
+      .forEach((item,i)=>{
+        const d=document.createElement('div');
+        d.className='card';
+        d.textContent=item.text;
+        d.draggable=true;
+        d.id='card-'+i;
+        d.dataset.term=item.term;
+        d.dataset.type=item.type;
+        d.ondragstart=e=>e.dataTransfer.setData('text/plain',d.id);
+        bank.appendChild(d);
+      });
+
+    // ===== Drag & Drop =====
+    document.querySelectorAll('.cell').forEach(cell=>{
+      cell.ondragover=e=>e.preventDefault();
+      cell.ondrop=e=>{
+        e.preventDefault();
+        const cardId=e.dataTransfer.getData('text/plain');
+        const card=document.getElementById(cardId);
+        if(!card) return;
+        if(cell.children.length===0) cell.appendChild(card);
+      };
+    });
+
+    function checkAnswers(){
+      let allCorrect=true;
+      document.querySelectorAll('.cell').forEach(cell=>{
+        cell.querySelectorAll('span').forEach(s=>s.remove());
+        const card=cell.querySelector('.card');
+        if(!card){allCorrect=false;return;}
+        const row=cell.closest('tr').dataset.term;
+        const ok = (card.dataset.term===row && card.dataset.type===cell.dataset.type);
+        const mark=document.createElement('span');
+        mark.textContent = ok ? '✔' : '✖';
+        mark.className = ok ? 'correct' : 'wrong';
+        cell.prepend(mark);
+        if(!ok) allCorrect=false;
+      });
+      document.getElementById('summary').style.display = allCorrect ? 'block' : 'none';
+    }
+
+    function resetWrong(){
+      document.querySelectorAll('.cell').forEach(cell=>{
+        const wrong = cell.querySelector('.wrong');
+        if(wrong){
+          const card = cell.querySelector('.card');
+          if(card) bank.appendChild(card);
+          cell.innerHTML='';
+        }
+      });
+      document.getElementById('summary').style.display='none';
+    }
+
+    // כפתור הגשה מופיע רק אחרי 20 תווים
+    const answerField=document.getElementById('summaryAnswer');
+    const submitBtn=document.getElementById('submitSummary');
+    answerField.addEventListener('input',()=>{
+      submitBtn.style.display = answerField.value.trim().length>=20 ? 'inline-block' : 'none';
+    });
+
+    function submitSummary(){
+      document.getElementById('exerciseContent').style.display='none';
+      document.getElementById('successOverlay').style.display='flex';
+    }
+
+    // ===== DOCX אמיתי (לפי הוורד הרשמי) =====
+    function downloadWord(){
+      if(!window.docx){
+        alert('ספריית docx לא נטענה. ודאי שיש אינטרנט ונסי לרענן.');
+        return;
+      }
+
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType } = window.docx;
+
+      const table = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: WORD_TABLE.map(row => new TableRow({
+          children: row.map(cell => new TableCell({
+            children: [new Paragraph(cell)]
+          }))
+        }))
+      });
+
+      const doc = new Document({
+        sections: [{
+          children: [
+            new Paragraph({ children: [new TextRun({ text: WORD_TITLE, bold: true })] }),
+            new Paragraph(""),
+            new Paragraph({ children: [new TextRun({ text: WORD_TABLE_TITLE, bold: true })] }),
+            new Paragraph(""),
+            table,
+            new Paragraph(""),
+            new Paragraph({ children: [new TextRun({ text: "שאלה מסמכת:", bold: true })] }),
+            new Paragraph(OPEN_QUESTION),
+            new Paragraph(""),
+            ...OPEN_ANSWER.split("\n").map(line => new Paragraph(line))
+          ]
+        }]
+      });
+
+      Packer.toBlob(doc).then(blob => {
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = 'פתרון תרגיל נושא 1.docx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // חשיפת פונקציות לכפתורים
+    window.checkAnswers = checkAnswers;
+    window.resetWrong = resetWrong;
+    window.submitSummary = submitSummary;
+    window.downloadWord = downloadWord;
+  </script>
+</body>
+</html>
